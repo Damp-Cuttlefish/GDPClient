@@ -1,13 +1,14 @@
-#include <SD.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include <WiFiServer.h>
 #include <WiFiUdp.h>
+
+#include <SD.h>
+
 /* Function Declarations */
-int wifi();
+void wifi();
 int rangefinder();
 /* Variables sent to server */
 byte mac[6]; 
@@ -17,42 +18,50 @@ byte batterystatus;
 /* Variables recieved from server */
 byte timevariable;
 /* Wifi connect details */
-char ssid[] = "ssidGoesHere";
-char password[] = "passwordGoesHere"; // Used as password for WPA, or the Key for WEP.
+const char* ssid     = "belkin.c23";
+const char* password = "";
 // int keyindex; // Key index for WEP encrpytion.
-/* On board LED */
-int led = 13;
 
+WiFiClient client;
 
 void setup()
 {
-WiFi.macAddress(mac); // Saves the devices mac address to mac, used as the UID.
+  Serial.begin(115200);
+  wifi();
 
 }
 
 void loop() 
 {
-  wifi();
+
 }
 
 int rangefinder(void)
 {
 }
 
-int wifi()
+void wifi(void)
 {
-  WiFi.begin(ssid,password);                // begin trying to connect to a WiFi network with WPA authentication.
-  while(WiFi.status() != WL_CONNECTED);     // Wait while chip is connecting.
-  while(WiFi.status() == WL_CONNECT_FAILED) // If WiFi connection fails, blink on board LED.
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED)
   {
-   digitalWrite(led, HIGH);
-   delay(1000);
-   digitalWrite(led, LOW);
-   delay(1000); 
+    delay(500);
+    Serial.print(".");
   }
-  while(WiFi.status() == WL_CONNECTED)      // If WiFi connection succeeds, Turn on board LED on.
-  {
-    digitalWrite(led, HIGH);
+
+  Serial.println("");
+  Serial.println("WiFi connected");  
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  if(client.connect("yourwaifuaslut.xyz",80))
+  { 
+    Serial.println("connected to the damn server");
   }
 }
 
