@@ -1,9 +1,9 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
-#include <WiFiClient.h>
-#include <WiFiClientSecure.h>
-#include <WiFiServer.h>
-#include <WiFiUdp.h>
+#include <ESP8266WiFiMulti.h> //Probably don't need
+#include <WiFiClient.h> 
+#include <WiFiClientSecure.h> //Does SSL/TLS
+#include <WiFiServer.h> //We are not a server
+#include <WiFiUdp.h> //Not this
 
 #include <SD.h>
 
