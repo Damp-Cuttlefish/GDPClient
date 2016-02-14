@@ -1,11 +1,11 @@
 #include <SD.h>
 
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h> //Is this really needed?
+#include <ESP8266WiFiMulti.h>
 #include <WiFiClient.h>
-#include <WiFiClientSecure.h> //This one does SSL/TLS by the way 
-#include <WiFiServer.h>//This isn't a server tho
-#include <WiFiUdp.h> //But we're using TCP
+#include <WiFiClientSecure.h>
+#include <WiFiServer.h>
+#include <WiFiUdp.h>
 /* Function Declarations */
 int wifi();
 int rangefinder();
