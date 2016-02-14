@@ -7,15 +7,15 @@ void wifi();
 int rangefinder();
 /* Variables sent to server */
 byte mac[6];
-byte maxdepth = 0;
-byte currentdepth = 1;
-byte batterystatus = 1;
+byte maxdepth;
+byte currentdepth;
+byte batterystatus;
 /* Variables recieved from server */
 byte timevariable;
 /* Wifi connect details */
 char* ssid     = "";
 char* password = "";
-// int keyindex; // Key index for WEP encrpytion.
+int keyindex; // Key index for WEP encrpytion.
 
 WiFiClient client;
 
