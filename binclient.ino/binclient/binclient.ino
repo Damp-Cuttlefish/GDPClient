@@ -65,14 +65,6 @@ int rangefinder(void)
 
 int sd(void)
 {
-  if (digitalRead(/*the pin card detect is on*/1) == 1)
-  {
-    Serial.println("SD card present");
-    SD.begin(/*insert pin the SD CS is connected to*/1);
-
-  }
-  else
-    Serial.println("SD card not detected");
 }
 
 void wifi(void)
