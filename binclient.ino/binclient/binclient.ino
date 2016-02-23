@@ -28,9 +28,6 @@ WiFiClient client;
 void setup()
 {
   Serial.begin(115200);
-  maxdepth = rangefinder();
-  Serial.println();
-  Serial.println(maxdepth);
 }
 
 void loop()
