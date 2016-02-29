@@ -1,33 +1,98 @@
+#include <EEPROM.h>
 #include <SPI.h>
 #include <SD.h>
-
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h> //Does SSL/TLS
-
+WiFiClient client;
 /* Function Declarations */
 void wifi();
 int rangefinder();
 /* Variables sent to server */
-int maxdepth;
-int currentdepth;
-byte batterystatus;
+byte maxdepth = -1;
 /* Variables recieved from server */
 byte timevariable;
 /* Wifi connect details */
 char* ssid     = "";
 char* password = "";
 int keyindex; // Key index for WEP encrpytion.
-/* Rangefinding Pins */
-#define pwpin 13
-#define rxpin 12
-#define pwr 14
+/* Variables */
+#define mins5 300000        // 5 Minute delay
 
-WiFiClient client;
+/* Pins definitions */
+#define pwpin 13            // Return signal from rangefinder
+#define rxpin 12            // Rangefind command pin
+#define pwr 14              // Rangefinder power pin
+#define battery 0           // Battery level circuit pin
+#define button  0           // Button pin
+#define led 0               // LED output pin
+
+/* EEPROM variable addresses */
+#define saveddepth 0
+#define savedtimevariable 1
+#define initilize 2
 
 void setup()
 {
+  byte i = 0;
+  byte firstTime = -1;
+  
   Serial.begin(115200);
+  /* Pin IO */
+  pinMode(pwr, OUTPUT);
+  pinMode(pwpin, OUTPUT);
+  pinMode(rxpin, INPUT);
+  pinMode(battery, INPUT);
+  pinMode(button, INPUT);
+
+  if(digitalRead(battery) == HIGH)
+  {
+    while(1)
+    {
+      digitalWrite(led, HIGH);
+      delay(500);
+      digitalWrite(led, LOW);
+      delay(500);
+    }
+  }
+  
+  /* SD card stuff here */
+  
+  EEPROM.begin(512);
+  while(firstTime != 1 || firstTime != 0)  // Check whether first time setup has ever been ran before
+    {
+      firstTime = EEPROM.read(initilize);
+      i++;
+      if( i == 10)                         // If the memory is something other than 1 or 0 this will assume first time setup has never been run, or firstTime would be 1
+      {
+        firstTime = 0;
+        i = 0;
+      }
+    }
+  EEPROM.end();
+  
+  if(firstTime == 0)
+    {
+      digitalWrite(led, HIGH);
+      while(!digitalRead(button));        // Wait for button to be pressed
+      digitalWrite(led,LOW);
+      delay(mins5);
+      maxdepth = rangefinder();
+      EEPROM.begin(512);
+      EEPROM.write(saveddepth,maxdepth);  // Save Max depth reading into non volitile memory
+      EEPROM.write(initilize, 1);         // Save the first time setup completion variable as complete
+      EEPROM.end();
+      Serial.print("first time done");
+    }
+  else if(firstTime == 1)
+    {
+      EEPROM.begin(512);
+      maxdepth = EEPROM.read(saveddepth);
+      timevariable = EEPROM.read(savedtimevariable);
+      EEPROM.end();
+    }
+
+
 }
 
 void loop()
@@ -35,13 +100,9 @@ void loop()
 
 }
 
-int rangefinder(void)
+int rangefinder(void)         // Returns range in cm
 {
   int pulse = 0;
-
-  pinMode(pwr, OUTPUT);
-  pinMode(pwpin, OUTPUT);
-  pinMode(rxpin, INPUT);
 
   digitalWrite(pwr, HIGH);      //set pin 6 high
   delay(250);                   //wait for 250ms for start up to complete
@@ -66,8 +127,12 @@ int sd(void)
 
 void wifi(void)
 {
+  int currentdepth = -1;
+  byte batterystatus = 0;
   byte mac[6];
   WiFi.macAddress(mac);
+  if(digitalRead(battery) == 1)
+    batterystatus = 1;
 
   String data = String("ID=") ;
   data = String(data + mac[0] + mac[1] + mac[2] + mac[3] + mac[4] + mac[5]);
