@@ -8,10 +8,15 @@ WiFiClient client;
 /* Function Declarations */
 void wifi();
 int rangefinder();
+void button_ISR();
 /* Variables sent to server */
 byte maxdepth = -1;
-/* Variables recieved from server */
-byte timevariable;
+byte currentdepth = 0;
+/* Random globals */
+byte timevariable = 6;
+int x1 = 0;
+int x2 = 0;
+byte ok = 0;
 /* Wifi connect details */
 char* ssid     = "";
 char* password = "";
@@ -35,6 +40,10 @@ int keyindex; // Key index for WEP encrpytion.
 void setup()
 {
   byte i = 0;
+  int j = 0;
+    /* These little buddies are used for the rangefinding check! */
+
+  
   byte firstTime = -1;
   
   Serial.begin(115200);
@@ -45,9 +54,9 @@ void setup()
   pinMode(battery, INPUT);
   pinMode(button, INPUT);
 
-  if(digitalRead(battery) == HIGH)
+  if(digitalRead(battery) == HIGH)          // If battery is low on startup blink LED forever
   {
-    while(1)
+    while(1)    
     {
       digitalWrite(led, HIGH);
       delay(500);
@@ -74,7 +83,7 @@ void setup()
   if(firstTime == 0)
     {
       digitalWrite(led, HIGH);
-      while(!digitalRead(button));        // Wait for button to be pressed
+      while(!digitalRead(button));        // Wait for button to be pressed before 5 minute countdown
       digitalWrite(led,LOW);
       delay(mins5);
       maxdepth = rangefinder();
@@ -89,14 +98,36 @@ void setup()
       EEPROM.begin(512);
       maxdepth = EEPROM.read(saveddepth);
       timevariable = EEPROM.read(savedtimevariable);
+      if(timevariable == 0)
+        timevariable = 1;
       EEPROM.end();
     }
+
+  attachInterrupt(button, button_ISR, RISING);
 
 
 }
 
 void loop()
 {
+  byte i;
+  int j;
+  while( ok == 0 )              // Takes two readings 30 secodns apart and check to see if they are within 10cm of each other! pretty neat right
+  {
+    x1 = rangefinder();
+    delay(30000);               // Wait 30 seconds
+    x2 = rangefinder();
+    currentdepth = x1 - x2;
+    if( currentdepth > -10 || currentdepth < 10)
+      ok = 1;
+  }
+  wifi();
+  
+  /* makes the delay */
+ for(i = 0; i < timevariable; i++);
+    for(j = 0; j < 3600; j++);
+      delay(1000);
+  
 
 }
 
@@ -123,11 +154,11 @@ int rangefinder(void)         // Returns range in cm
 
 int sd(void)
 {
+  
 }
 
 void wifi(void)
 {
-  int currentdepth = -1;
   byte batterystatus = 0;
   byte mac[6];
   WiFi.macAddress(mac);
@@ -163,3 +194,4 @@ void wifi(void)
     client.stop();
   }
 }
+
