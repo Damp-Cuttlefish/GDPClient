@@ -8,6 +8,7 @@ WiFiClient client;
 /* Function Declarations */
 void wifi();
 int rangefinder();
+int sd();
 void button_ISR();
 /* Variables sent to server */
 byte maxdepth = -1;
