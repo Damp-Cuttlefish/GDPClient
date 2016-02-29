@@ -195,3 +195,20 @@ void wifi(void)
   }
 }
 
+void button_ISR(void)
+{
+  int count = 0;
+  while (button == 1)
+  {
+    count+1;
+    delay(1);
+  }
+  if( count >= 5000)
+  {
+    EEPROM.begin(512);
+    EEPROM.write(initilize, 0);
+    EEPROM.end();
+    setup();
+  }
+  else delay(mins5);
+}
