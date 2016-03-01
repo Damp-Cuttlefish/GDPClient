@@ -210,6 +210,9 @@ void button_ISR(void)
     EEPROM.write(initilize, 0);
     EEPROM.end();
     setup();
+    digitalWrite(led,HIGH);   // CHECK THESE NEXT 3 LINES TO SEE IF THEY COMPILE RIGHT
+    delay(500);
+    digitalWrite(led,LOW);
   }
   else delay(mins5);
 }
