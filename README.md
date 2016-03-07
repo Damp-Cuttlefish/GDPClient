@@ -9,12 +9,13 @@ Rangefinder
 
 Battery check on startup
 
-Button ISR ( for >5s and <5s) (still needs testing)
+Button ISR ( for >5s and <5s) 
 
 First time setup, and first time setup skip.
+
+everything hopefully
 
 Things i forgot i did
 # things not dun
 Sleep (Everthing is setup to just add this in)
 
-things i forgot to do
