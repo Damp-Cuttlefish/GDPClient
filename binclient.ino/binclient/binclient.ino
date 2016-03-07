@@ -52,7 +52,11 @@ void setup()
   pinMode(button, INPUT);
   pinMode(16, OUTPUT);
   pinMode(led, OUTPUT);
+<<<<<<< HEAD
   digitalWrite(16, HIGH);
+=======
+  digitalWrite(16, HIGH);                 // write 16 high to stop the device continually 
+>>>>>>> origin/Main
   
   if(digitalRead(battery) == LOW)         // 2 Second pulse for good battery check on startup
   {
@@ -88,7 +92,11 @@ void setup()
   if(firstTime == 0)
     {
       digitalWrite(led, HIGH);
+<<<<<<< HEAD
       while(digitalRead(button) == HIGH)// Wait for button to be pressed before 5 minute countdown
+=======
+      while(digitalRead(button) == 1)// Wait for button to be pressed before 5 minute countdown
+>>>>>>> origin/Main
       {
         yield();
       }
@@ -98,6 +106,13 @@ void setup()
       EEPROM.begin(512);
       EEPROM.write(saveddepth,maxdepth);  // Save Max depth reading into non volitile memory
       EEPROM.write(initilize,1);         // Save the first time setup completion variable as complete
+<<<<<<< HEAD
+=======
+      Serial.print(" eeprom initilize saved number = ");
+      Serial.println(EEPROM.read(initilize));
+      Serial.print(" eeprom maxdepth saved number = ");
+      Serial.println(EEPROM.read(saveddepth));
+>>>>>>> origin/Main
       EEPROM.end();
     }
   else if(firstTime == 1)
@@ -117,9 +132,37 @@ void loop()
   int i, j;
   currentdepth = rangefinder(waitbetweenlooprangefinding);
   wifi();
+<<<<<<< HEAD
   for(i = 0; i < seconds; i++)                     // 3600 IS NUMBER OF SECONDS DELAY RUNS FOR CHANGE DURING 
     for(j = 0; j < timevariable; j++)
       delay(1000);
+=======
+  Serial.println("delay begins");
+  delay(1000 * 3600000 * timevariable);
+  Serial.println(currentdepth);
+  Serial.println("Delay ends loop runs again!");
+}
+
+int rangefinder(void)           // Returns range in cm
+{
+  int pulse = 0;
+
+  digitalWrite(pwr, HIGH);      //set pin 6 high
+  delay(250);                   //wait for 250ms for start up to complete
+
+  digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+  delayMicroseconds(20);
+  digitalWrite(rxpin, LOW);
+  delay(200);
+
+  digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+  delayMicroseconds(20);
+  digitalWrite(rxpin, LOW);
+  pulse = pulseIn(pwpin, HIGH); //listen for return signal
+  pulse = pulse / 58;
+  digitalWrite(pwr, LOW);       //set pin 6 low
+  return pulse;
+>>>>>>> origin/Main
 }
 
 int rangefinder(int timedelay)           // Returns range in cm
@@ -221,6 +264,7 @@ void button_ISR(void)
     EEPROM.write(initilize, 0);
     EEPROM.write(savedtimevariable, 0);
     EEPROM.end();
+<<<<<<< HEAD
     digitalWrite(16, LOW);
   }
   else
@@ -234,6 +278,12 @@ void button_ISR(void)
       count = time2 - time1;
       yield();
     }
+=======
+    digitalWrite(led,HIGH); 
+    delay(2000);
+    digitalWrite(led,LOW);
+    setup();
+>>>>>>> origin/Main
   }
   interrupts();
 }
