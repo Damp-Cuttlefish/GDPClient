@@ -6,7 +6,7 @@ WiFiClient client;
 
 /* Function Declarations */
 void wifi();
-int rangefinder();
+int rangefinder(int);
 int sd();
 void button_ISR();
 /* Variables sent to server */
@@ -14,23 +14,24 @@ byte maxdepth = -1;
 byte currentdepth = 0;
 /* Random globals */
 byte timevariable = 6;
-int x1 = 0;
-int x2 = 0;
-byte ok = 0;
 /* Wifi connect details */
-char* ssid     = "belkin.c23";
-char* password = "";
+const char* ssid     = "";
+const char* password = "";
 int keyindex; // Key index for WEP encrpytion.
 /* Variables */
-#define mins5 300000        // 5 Minute delay
+#define mins5 300000                    // Milliseconds device waits 1) from setup button press to maxdepth reading 2) if button is pressed for < reset seconds
+#define waitbetweenlooprangefinding 30  // seconds between the two rangefinder measurments in loop()
+#define rangefinderwaitinsetup 2        // Seconds between rangefinder measurements for maxdepth
+#define seconds 3600                    // Seconds * 1second * timevariable
+#define resetseconds 5                  // Seconds you have to hold button down for system reset to happen
 
 /* Pins definitions */
-#define pwpin 13            // Return signal from rangefinder
-#define rxpin 12            // Rangefind command pin
-#define pwr 14              // Rangefinder power pin
-#define battery 15           // Battery level circuit pin
-#define button  2           // Button pin
-#define led 4               // LED output pin
+#define pwpin 13                        // Return signal from rangefinder
+#define rxpin 12                        // Rangefind command pin
+#define pwr 14                          // Rangefinder power pin
+#define battery 15                      // Battery level circuit pin
+#define button  2                       // Button pin
+#define led 4                           // LED output pin
 
 
 /* EEPROM variable addresses */
@@ -41,11 +42,8 @@ int keyindex; // Key index for WEP encrpytion.
 void setup()
 {
   byte i = 0;
-  int j = 0;/* These little buddies are used for the rangefinding check! */
-
+  int j = 0;
   byte firstTime = -1;
-  Serial.begin(115200);
-  Serial.println();
   /* Pin IO */
   pinMode(pwr, OUTPUT);
   pinMode(pwpin, OUTPUT);
@@ -55,7 +53,6 @@ void setup()
   pinMode(16, OUTPUT);
   pinMode(led, OUTPUT);
   digitalWrite(16, HIGH);
-  Serial.println("pins done");
   
   if(digitalRead(battery) == LOW)         // 2 Second pulse for good battery check on startup
   {
@@ -73,9 +70,7 @@ void setup()
       delay(500);
     }
   }
-  Serial.println("batterycheck passed");
   /* SD card stuff here */
-  Serial.println("initilise begin");
   EEPROM.begin(512);
   while(firstTime > 1 || firstTime < 0)  // Check whether first time setup has ever been ran before
     {
@@ -87,113 +82,90 @@ void setup()
         i = 0;
       }
       yield();
-      Serial.println("initilize looped");
     }
   EEPROM.end();
-  Serial.println("initilise passed");
+
   if(firstTime == 0)
     {
-      Serial.println("firsttime = 0");
       digitalWrite(led, HIGH);
-      while(digitalRead(button)==0)// Wait for button to be pressed before 5 minute countdown
+      while(digitalRead(button) == HIGH)// Wait for button to be pressed before 5 minute countdown
       {
-        Serial.println("waiting for button press");
         yield();
       }
       digitalWrite(led,LOW);
-      delay(500);
-      maxdepth = rangefinder();
-      Serial.println(maxdepth);
+      delay(mins5);
+      maxdepth = rangefinder(rangefinderwaitinsetup);
       EEPROM.begin(512);
       EEPROM.write(saveddepth,maxdepth);  // Save Max depth reading into non volitile memory
-      byte doesthiswork = 1;
-      EEPROM.write(initilize,doesthiswork);         // Save the first time setup completion variable as complete
-      Serial.print(" eeprom initilize saved number = ");
-      Serial.println(EEPROM.read(initilize));
-      Serial.print(" eeprom maxdepth saved number = ");
-      Serial.println(EEPROM.read(saveddepth));
+      EEPROM.write(initilize,1);         // Save the first time setup completion variable as complete
       EEPROM.end();
-      Serial.println("first time = 0 done");
     }
   else if(firstTime == 1)
     {
-      Serial.println("First time = 1");
       EEPROM.begin(512);
       maxdepth = EEPROM.read(saveddepth);
       timevariable = EEPROM.read(savedtimevariable);
       if(timevariable == 0)
         timevariable = 1;
       EEPROM.end();
-      Serial.println("first time = 1 done");
     }
   attachInterrupt(button, button_ISR, FALLING);
 }
 
 void loop()
 {
-  byte i;
-  int j;
+  int i, j;
+  currentdepth = rangefinder(waitbetweenlooprangefinding);
+  wifi();
+  for(i = 0; i < seconds; i++)                     // 3600 IS NUMBER OF SECONDS DELAY RUNS FOR CHANGE DURING 
+    for(j = 0; j < timevariable; j++)
+      delay(1000);
+}
+
+int rangefinder(int timedelay)           // Returns range in cm
+{
+  int x1 = 0;
+  int x2 = 0;
+  byte ok = 0;
+  int pulse;
   while( ok == 0 )              // Takes two readings 30 secodns apart and check to see if they are within 10cm of each other! pretty neat right
   {
-    x1 = rangefinder();
-    Serial.print("30s start x1 = ");
-    Serial.println(x1);
-    delay(30000);               // Wait 30 seconds
-    x2 = rangefinder();
-    Serial.print("30s end x2 = ");
-    Serial.println(x2);
-    currentdepth = x1 - x2;
-    Serial.println("calculation done");
-    if( currentdepth > -10 && currentdepth < 10)
+    digitalWrite(pwr, HIGH);      //set pin 6 high
+    delay(250);                   //wait for 250ms for start up to complete
+
+    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    delayMicroseconds(20);
+    digitalWrite(rxpin, LOW);
+    delay(200);
+
+    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    delayMicroseconds(20);
+    digitalWrite(rxpin, LOW);
+    x1 = pulseIn(pwpin, HIGH); //listen for return signal
+    x1 = x1 / 58;
+    digitalWrite(pwr, LOW);       //set pin 6 low
+    delay( 1000* timedelay );               // Wait timedelay seconds
+    digitalWrite(pwr, HIGH);      //set pin 6 high
+    delay(250);                   //wait for 250ms for start up to complete
+
+    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    delayMicroseconds(20);
+    digitalWrite(rxpin, LOW);
+    delay(200);
+
+    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    delayMicroseconds(20);
+    digitalWrite(rxpin, LOW);
+    x2 = pulseIn(pwpin, HIGH); //listen for return signal
+    x2 = x2 / 58;
+    digitalWrite(pwr, LOW);       //set pin 6 low
+    pulse = x1 - x2;
+    if( pulse > -10 && pulse < 10)
       {
-        Serial.println("readings were ok");
         ok = 1;
-        currentdepth = x1;
       }
   }
-  Serial.println("left rangefinder average code");
-  ok = 0;
-  wifi();
-  Serial.println("delay begins");
-  delay(1000 * 3600 * timevariable);
-  Serial.println(currentdepth);
-  Serial.println("Delay ends loop runs again!");
-}
-
-int rangefinder(void)           // Returns range in cm
-{
-  int pulse = 0;
-
-  digitalWrite(pwr, HIGH);      //set pin 6 high
-  delay(250);                   //wait for 250ms for start up to complete
-
-  digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
-  delayMicroseconds(20);
-  digitalWrite(rxpin, LOW);
-  delay(200);
-
-  digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
-  delayMicroseconds(20);
-  digitalWrite(rxpin, LOW);
-  pulse = pulseIn(pwpin, HIGH); //listen for return signal
-  pulse = pulse / 58;
-  digitalWrite(pwr, LOW);       //set pin 6 low
-  return pulse;
-}
-
-int sd(void)
-{
-  //CONNECTION_TYPE;SSID;PASSWORD;
-  byte serialArray[64] = {0};
-  byte i;
-  if(Serial.available() > 0)
-  {
-    Serial.readBytesUntil(';',serialArray, 32);
-    for(i = 0; i < 64; i++)
-      Serial.print(serialArray[i]);
-  }
-  
-  
+  return x1;
 }
 
 void wifi(void)
@@ -201,16 +173,16 @@ void wifi(void)
   byte batterystatus = 0;
   byte mac[6];
   WiFi.macAddress(mac);
-  if(digitalRead(battery) == 1)
+  if(digitalRead(battery) == HIGH)
     batterystatus = 1;
 
-  String data = String("ID=") ;
+  String data = String("UID=") ;
   data = String(data + mac[0] + mac[1] + mac[2] + mac[3] + mac[4] + mac[5]);
-  data = String(data + "&level=");
+  data = String(data + "&BinLevelCurrent=");
   data = String(data + currentdepth);
-  data = String(data + "&levelmax=");
+  data = String(data + "&BinLevelMax=");
   data = String(data + maxdepth);
-  data = String(data + "&battlevel=");
+  data = String(data + "&Status=");
   data = String(data + batterystatus);
 
   WiFi.begin(ssid, password);
@@ -219,10 +191,10 @@ void wifi(void)
   {
     yield();
   }
-  if (client.connect("yourwaifuaslut.xyz", 80))
+  if (client.connect("binformant.tk", 80))
   {
-    client.println("POST /public/GDPServer/ctest.php HTTP/1.1");
-    client.println("Host: yourwaifuaslut.xyz");
+    client.println("POST /client.php HTTP/1.1");
+    client.println("Host: binformant.tk");
     client.println("User-Agent: Arduino");
     client.println("Content-Type: application/x-www-form-urlencoded");
     client.print("Content-Length: ");
@@ -235,21 +207,33 @@ void wifi(void)
 
 void button_ISR(void)
 {
-  int count = 0;
-  while (button == 0)
-  {
-    count+1;
-    delay(1);
-  }
-  if( count >= 5000)
+  noInterrupts();
+  long count = 0;
+  long time1;
+  long time2;
+  time1 = millis();
+  while (digitalRead(button) == LOW);
+  time2 = millis();
+  count = time2 - time1;
+  if( count >= (resetseconds*1000))
   {
     EEPROM.begin(512);
     EEPROM.write(initilize, 0);
+    EEPROM.write(savedtimevariable, 0);
     EEPROM.end();
-    digitalWrite(led,HIGH);   // CHECK THESE NEXT 3 LINES TO SEE IF THEY COMPILE RIGHT
-    delay(2000);
-    digitalWrite(led,LOW);
-    setup();
+    digitalWrite(16, LOW);
   }
-  else delay(mins5);
+  else
+  {
+    time1 = 0;
+    time2 = 0;
+    time1 = millis();
+    while(count < mins5)
+    {
+      time2 = millis();
+      count = time2 - time1;
+      yield();
+    }
+  }
+  interrupts();
 }
