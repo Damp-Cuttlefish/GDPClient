@@ -54,8 +54,7 @@ void setup()
   pinMode(button, INPUT);
   pinMode(16, OUTPUT);
   pinMode(led, OUTPUT);
-  digitalWrite(16, HIGH);
-  Serial.println("pins done");
+  digitalWrite(16, HIGH);                 // write 16 high to stop the device continually 
   
   if(digitalRead(battery) == LOW)         // 2 Second pulse for good battery check on startup
   {
@@ -95,7 +94,7 @@ void setup()
     {
       Serial.println("firsttime = 0");
       digitalWrite(led, HIGH);
-      while(digitalRead(button)==0)// Wait for button to be pressed before 5 minute countdown
+      while(digitalRead(button) == 1)// Wait for button to be pressed before 5 minute countdown
       {
         Serial.println("waiting for button press");
         yield();
@@ -106,8 +105,7 @@ void setup()
       Serial.println(maxdepth);
       EEPROM.begin(512);
       EEPROM.write(saveddepth,maxdepth);  // Save Max depth reading into non volitile memory
-      byte doesthiswork = 1;
-      EEPROM.write(initilize,doesthiswork);         // Save the first time setup completion variable as complete
+      EEPROM.write(initilize,1);         // Save the first time setup completion variable as complete
       Serial.print(" eeprom initilize saved number = ");
       Serial.println(EEPROM.read(initilize));
       Serial.print(" eeprom maxdepth saved number = ");
@@ -155,7 +153,7 @@ void loop()
   ok = 0;
   wifi();
   Serial.println("delay begins");
-  delay(1000 * 3600 * timevariable);
+  delay(1000 * 3600000 * timevariable);
   Serial.println(currentdepth);
   Serial.println("Delay ends loop runs again!");
 }
@@ -246,7 +244,7 @@ void button_ISR(void)
     EEPROM.begin(512);
     EEPROM.write(initilize, 0);
     EEPROM.end();
-    digitalWrite(led,HIGH);   // CHECK THESE NEXT 3 LINES TO SEE IF THEY COMPILE RIGHT
+    digitalWrite(led,HIGH); 
     delay(2000);
     digitalWrite(led,LOW);
     setup();
