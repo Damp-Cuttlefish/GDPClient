@@ -3,6 +3,7 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h> //Does SSL/TLS
 WiFiClient client;
+
 /* Function Declarations */
 void wifi();
 int rangefinder();
@@ -44,6 +45,7 @@ void setup()
 
   byte firstTime = -1;
   Serial.begin(115200);
+  Serial.println();
   /* Pin IO */
   pinMode(pwr, OUTPUT);
   pinMode(pwpin, OUTPUT);
@@ -51,11 +53,19 @@ void setup()
   pinMode(battery, INPUT);
   pinMode(button, INPUT);
   pinMode(16, OUTPUT);
-  Serial.print("pins done");
+  pinMode(led, OUTPUT);
   digitalWrite(16, HIGH);
-  if(digitalRead(battery) == HIGH)          // If battery is low on startup blink LED forever
+  Serial.println("pins done");
+  
+  if(digitalRead(battery) == LOW)         // 2 Second pulse for good battery check on startup
   {
-    while(1)    
+    digitalWrite(led, HIGH);
+    delay(2000);
+    digitalWrite(led, LOW);
+  }
+  else if(digitalRead(battery) == HIGH)   // 10 pulses for bad battery check on startup
+  {
+    for(i = 0; i < 10; i++)
     {
       digitalWrite(led, HIGH);
       delay(500);
@@ -116,7 +126,7 @@ void setup()
       EEPROM.end();
       Serial.println("first time = 1 done");
     }
-  attachInterrupt(button, button_ISR, RISING);
+  attachInterrupt(button, button_ISR, FALLING);
 }
 
 void loop()
@@ -133,21 +143,24 @@ void loop()
     Serial.print("30s end x2 = ");
     Serial.println(x2);
     currentdepth = x1 - x2;
+    Serial.println("calculation done");
     if( currentdepth > -10 && currentdepth < 10)
       {
+        Serial.println("readings were ok");
         ok = 1;
         currentdepth = x1;
       }
   }
+  Serial.println("left rangefinder average code");
   ok = 0;
   wifi();
-
+  Serial.println("delay begins");
   delay(1000 * 3600 * timevariable);
   Serial.println(currentdepth);
-  Serial.println("loop looped");
+  Serial.println("Delay ends loop runs again!");
 }
 
-int rangefinder(void)         // Returns range in cm
+int rangefinder(void)           // Returns range in cm
 {
   int pulse = 0;
 
@@ -204,9 +217,8 @@ void wifi(void)
 
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    yield();
   }
-
   if (client.connect("yourwaifuaslut.xyz", 80))
   {
     client.println("POST /public/GDPServer/ctest.php HTTP/1.1");
@@ -224,7 +236,7 @@ void wifi(void)
 void button_ISR(void)
 {
   int count = 0;
-  while (button == 1)
+  while (button == 0)
   {
     count+1;
     delay(1);
@@ -234,10 +246,10 @@ void button_ISR(void)
     EEPROM.begin(512);
     EEPROM.write(initilize, 0);
     EEPROM.end();
-    setup();
     digitalWrite(led,HIGH);   // CHECK THESE NEXT 3 LINES TO SEE IF THEY COMPILE RIGHT
-    delay(500);
+    delay(2000);
     digitalWrite(led,LOW);
+    setup();
   }
   else delay(mins5);
 }
