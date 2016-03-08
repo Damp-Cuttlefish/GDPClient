@@ -19,10 +19,10 @@ const char* ssid     = "";
 const char* password = "";
 int keyindex; // Key index for WEP encrpytion.
 /* Variables */
-#define mins5 300000                    // Milliseconds device waits 1) from setup button press to maxdepth reading 2) if button is pressed for < reset seconds
-#define waitbetweenlooprangefinding 30  // seconds between the two rangefinder measurments in loop()
+#define mins5 10000                     // Milliseconds device waits 1) from setup button press to maxdepth reading 2) if button is pressed for < reset seconds
+#define waitbetweenlooprangefinding 5   // seconds between the two rangefinder measurments in loop()
 #define rangefinderwaitinsetup 2        // Seconds between rangefinder measurements for maxdepth
-#define seconds 3600                    // Seconds * 1second * timevariable
+#define seconds 2                       // Seconds * 1second * timevariable
 #define resetseconds 5                  // Seconds you have to hold button down for system reset to happen
 
 /* Pins definitions */
@@ -41,6 +41,7 @@ int keyindex; // Key index for WEP encrpytion.
 
 void setup()
 {
+  Serial.begin(115200);
   byte i = 0;
   int j = 0;
   byte firstTime = -1;
@@ -207,10 +208,10 @@ void wifi(void)
 
 void button_ISR(void)
 {
-  noInterrupts();
   long count = 0;
   long time1;
   long time2;
+  int i;
   time1 = millis();
   while (digitalRead(button) == LOW);
   time2 = millis();
@@ -228,12 +229,11 @@ void button_ISR(void)
     time1 = 0;
     time2 = 0;
     time1 = millis();
-    while(count < mins5)
+    while(count < mins5)              // This sets the WDT off still
     {
       time2 = millis();
       count = time2 - time1;
       yield();
     }
   }
-  interrupts();
 }
