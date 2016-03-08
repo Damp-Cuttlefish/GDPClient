@@ -15,8 +15,8 @@ byte currentdepth = 0;
 /* Random globals */
 byte timevariable = 6;
 /* Wifi connect details */
-const char* ssid     = "";
-const char* password = "";
+char ssid[100]     = "";
+char password[100] = "";
 int keyindex; // Key index for WEP encrpytion.
 /* Variables */
 #define mins5 10000                     // Milliseconds device waits 1) from setup button press to maxdepth reading 2) if button is pressed for < reset seconds
