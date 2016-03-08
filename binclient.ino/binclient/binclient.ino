@@ -118,7 +118,7 @@ void loop()
   int i, j;
   currentdepth = rangefinder(waitbetweenlooprangefinding);
   wifi();
-  for(i = 0; i < seconds; i++)                     // 3600 IS NUMBER OF SECONDS DELAY RUNS FOR CHANGE DURING 
+  for(i = 0; i < seconds; i++)                     
     for(j = 0; j < timevariable; j++)
       delay(1000);
 }
@@ -186,6 +186,7 @@ void wifi(void)
   data = String(data + "&Status=");
   data = String(data + batterystatus);
 
+
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED)
@@ -213,7 +214,8 @@ void button_ISR(void)
   long time2;
   int i;
   time1 = millis();
-  while (digitalRead(button) == LOW);
+  while (digitalRead(button) == LOW)
+    ESP.wdtFeed();
   time2 = millis();
   count = time2 - time1;
   if( count >= (resetseconds*1000))
@@ -233,7 +235,7 @@ void button_ISR(void)
     {
       time2 = millis();
       count = time2 - time1;
-      yield();
+      ESP.wdtFeed();
     }
   }
 }

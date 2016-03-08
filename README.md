@@ -9,7 +9,7 @@ Rangefinder
 
 Battery check on startup
 
-Button ISR (for >5s) 
+Button ISR (for >5s and <5s) 
 
 First time setup, and first time setup skip.
 
@@ -17,7 +17,7 @@ everything hopefully
 
 Things i forgot i did
 # Things not done
-Button ISR for <5s is called but the delay times out
+Serial data read
 
 Sleep (Everthing is setup to just add this in)
 
