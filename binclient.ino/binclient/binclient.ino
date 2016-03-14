@@ -19,7 +19,7 @@ char ssid[100]     = "";
 char password[100] = "";
 int keyindex; // Key index for WEP encrpytion.
 /* Variables */
-#define mins5 10000                     // Milliseconds device waits 1) from setup button press to maxdepth reading 2) if button is pressed for < reset seconds
+#define mins5 10000                     // Milliseconds device waits 1) from setup button press to maxdepth reading or turn on 2) if button is pressed for < reset seconds
 #define waitbetweenlooprangefinding 5   // seconds between the two rangefinder measurments in loop()
 #define rangefinderwaitinsetup 2        // Seconds between rangefinder measurements for maxdepth
 #define seconds 2                       // Seconds * 1second * timevariable
@@ -109,6 +109,7 @@ void setup()
       if(timevariable == 0)
         timevariable = 1;
       EEPROM.end();
+      delay(mins5);
     }
   attachInterrupt(button, button_ISR, FALLING);
 }
