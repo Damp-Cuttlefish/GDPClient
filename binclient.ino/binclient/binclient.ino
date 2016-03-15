@@ -71,13 +71,13 @@ void setup()
       delay(500);
     }
   }
-  /* SD card stuff here */
+  
   EEPROM.begin(512);
   while(firstTime > 1 || firstTime < 0)  // Check whether first time setup has ever been ran before
     {
       firstTime = EEPROM.read(initilize);
       i++;
-      if( i > 10)                         // If the memory is something other than 1 or 0 this will assume first time setup has never been run, or firstTime would be 1
+      if( i > 10)                        // If first time != 0 or 1, assume device needs first time setup
       {
         firstTime = 0;
         i = 0;
@@ -86,99 +86,99 @@ void setup()
     }
   EEPROM.end();
 
-  if(firstTime == 0)
+  if(firstTime == 0)                    // First time setup
     {
       digitalWrite(led, HIGH);
-      while(digitalRead(button) == HIGH)// Wait for button to be pressed before 5 minute countdown
+      while(digitalRead(button) == HIGH)  // Wait for button to be pressed before 5 minute countdown
       {
         yield();
       }
       digitalWrite(led,LOW);
       delay(mins5);
-      maxdepth = rangefinder(rangefinderwaitinsetup);
+      maxdepth = rangefinder(rangefinderwaitinsetup); // Take max depth reading
       EEPROM.begin(512);
       EEPROM.write(saveddepth,maxdepth);  // Save Max depth reading into non volitile memory
-      EEPROM.write(initilize,1);         // Save the first time setup completion variable as complete
+      EEPROM.write(initilize,1);          // Save the first time setup completion variable as complete
       EEPROM.end();
     }
-  else if(firstTime == 1)
+  else if(firstTime == 1)                 // Normal startup, retrieve variables from memory
     {
       EEPROM.begin(512);
-      maxdepth = EEPROM.read(saveddepth);
-      timevariable = EEPROM.read(savedtimevariable);
-      if(timevariable == 0)
+      maxdepth = EEPROM.read(saveddepth); // Get max depth read on last first time setup
+      timevariable = EEPROM.read(savedtimevariable);  // Get time variable from last first time setup
+      if(timevariable == 0)               // If saved variable was 0, change it to one or device will continuously run
         timevariable = 1;
       EEPROM.end();
       delay(mins5);
     }
-  attachInterrupt(button, button_ISR, FALLING);
+  attachInterrupt(button, button_ISR, FALLING); // Initilise button interrupt
 }
 
 void loop()
 {
   int i, j;
-  currentdepth = rangefinder(waitbetweenlooprangefinding);
-  wifi();
-  for(i = 0; i < seconds; i++)                     
+  currentdepth = rangefinder(waitbetweenlooprangefinding);  // Take curent dpeth reading
+  wifi();                                 // Send data to server
+  for(i = 0; i < seconds; i++)            // Wait for time variable hours
     for(j = 0; j < timevariable; j++)
       delay(1000);
 }
 
-int rangefinder(int timedelay)           // Returns range in cm
+int rangefinder(int timedelay)           // Takes depth reading and returns depth in centimeters
 {
   int x1 = 0;
   int x2 = 0;
   byte ok = 0;
   int pulse;
-  while( ok == 0 )              // Takes two readings 30 secodns apart and check to see if they are within 10cm of each other! pretty neat right
+  while( ok == 0 )              // Takes two readings 30 seconds apart and check to see if they are within 10cm of each other
   {
-    digitalWrite(pwr, HIGH);      //set pin 6 high
+    digitalWrite(pwr, HIGH);      // Turn rangefinder on
     delay(250);                   //wait for 250ms for start up to complete
 
-    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    digitalWrite(rxpin, HIGH);    // Command reading from rangefinder
     delayMicroseconds(20);
     digitalWrite(rxpin, LOW);
-    delay(200);
+    delay(200);                   // Wait for confusing first reading to end
 
-    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    digitalWrite(rxpin, HIGH);    // Command first reading from rangefinder
     delayMicroseconds(20);
-    digitalWrite(rxpin, LOW);
-    x1 = pulseIn(pwpin, HIGH); //listen for return signal
-    x1 = x1 / 58;
-    digitalWrite(pwr, LOW);       //set pin 6 low
-    delay( 1000* timedelay );               // Wait timedelay seconds
-    digitalWrite(pwr, HIGH);      //set pin 6 high
-    delay(250);                   //wait for 250ms for start up to complete
+    digitalWrite(rxpin, LOW);     
+    x1 = pulseIn(pwpin, HIGH);    // Wait for first reading to come back
+    x1 = x1 / 58;                 // Conver tot centimeters
+    digitalWrite(pwr, LOW);       // Turn rangefinder off
+    delay( 1000* timedelay );     // Wait timedelay seconds before second reading is taken
+    digitalWrite(pwr, HIGH);      // Turn rangefinder on
+    delay(250);                   // Wait for 250ms for start up to complete
 
-    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    digitalWrite(rxpin, HIGH);    // Command reading from rangefinder
     delayMicroseconds(20);
     digitalWrite(rxpin, LOW);
-    delay(200);
+    delay(200);                   // Wait for confusing first reading to end 
 
-    digitalWrite(rxpin, HIGH);    //set pin 4 high for 1ms
+    digitalWrite(rxpin, HIGH);    // Command second reading from rangefinder
     delayMicroseconds(20);
     digitalWrite(rxpin, LOW);
-    x2 = pulseIn(pwpin, HIGH); //listen for return signal
-    x2 = x2 / 58;
-    digitalWrite(pwr, LOW);       //set pin 6 low
-    pulse = x1 - x2;
-    if( pulse > -10 && pulse < 10)
+    x2 = pulseIn(pwpin, HIGH);    // Wait until rangefinder sends it's reading back
+    x2 = x2 / 58;                 // Convert to centimeters
+    digitalWrite(pwr, LOW);       // Turn rangefidner off
+    pulse = x1 - x2;              
+    if( pulse > -10 && pulse < 10)  // Check to see if both readings are within 10 cm of each other
       {
-        ok = 1;
-      }
+        ok = 1;                   // If they are set ok to 1 so we can leave the rangefinding loop
+      }                           // If they are not, take another set of readings
   }
-  return x1;
+  return x1;                      // Return good value
 }
 
 void wifi(void)
 {
   byte batterystatus = 0;
   byte mac[6];
-  WiFi.macAddress(mac);
-  if(digitalRead(battery) == HIGH)
+  WiFi.macAddress(mac);           // Get devices MAC address, this serves as its UID
+  if(digitalRead(battery) == HIGH)  // Check if the battery is low
     batterystatus = 1;
 
-  String data = String("UID=") ;
+  String data = String("UID=") ;  // Format all the data that is sent to the server
   data = String(data + mac[0] + mac[1] + mac[2] + mac[3] + mac[4] + mac[5]);
   data = String(data + "&BinLevelCurrent=");
   data = String(data + currentdepth);
@@ -188,55 +188,55 @@ void wifi(void)
   data = String(data + batterystatus);
 
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, password);   // initilise the connection to the WiFi access point
 
-  while (WiFi.status() != WL_CONNECTED)
+  while (WiFi.status() != WL_CONNECTED) // Wait until we are connected to access point
   {
     yield();
   }
-  if (client.connect("binformant.tk", 80))
+  if (client.connect("binformant.tk", 80))  // Connect to binformant.tk 
   {
-    client.println("POST /client.php HTTP/1.1");
+    client.println("POST /client.php HTTP/1.1");  // Send correct http headers
     client.println("Host: binformant.tk");
     client.println("User-Agent: Arduino");
     client.println("Content-Type: application/x-www-form-urlencoded");
     client.print("Content-Length: ");
     client.println(data.length());
     client.println();
-    client.println(data);
-    client.stop();
+    client.println(data);                   // Send data
+    client.stop();                          // Disconnect
   }
 }
 
-void button_ISR(void)
+void button_ISR(void) // Button press ISR
 {
   long count = 0;
   long time1;
   long time2;
   int i;
-  time1 = millis();
-  while (digitalRead(button) == LOW)
-    ESP.wdtFeed();
-  time2 = millis();
-  count = time2 - time1;
-  if( count >= (resetseconds*1000))
+  time1 = millis();   // Take time reading straight after function is called
+  while (digitalRead(button) == LOW)  // Wait untill button is let go of
+    ESP.wdtFeed();    // Stops WDT setting off
+  time2 = millis();   // Take second time reading
+  count = time2 - time1;  // Find out how many milliseconds button has been pressed for
+  if( count >= (resetseconds*1000)) // Device reset routine if button pressed for longer than reset seconds
   {
     EEPROM.begin(512);
-    EEPROM.write(initilize, 0);
-    EEPROM.write(savedtimevariable, 0);
+    EEPROM.write(initilize, 0);     // Tell device it has never had a first time setup
+    EEPROM.write(savedtimevariable, 0); // Override previous time variable
     EEPROM.end();
-    digitalWrite(16, LOW);
+    digitalWrite(16, LOW);          // Reset device using reset line
   }
-  else
+  else  // Otherwise button press is for program pause
   {
     time1 = 0;
     time2 = 0;
-    time1 = millis();
-    while(count < mins5)              // This sets the WDT off still
+    time1 = millis(); // Take time reading 
+    while(count < mins5)  // Wait until count has reached mins5 variable in milliseconds
     {
-      time2 = millis();
-      count = time2 - time1;
-      ESP.wdtFeed();
+      time2 = millis();   // take time
+      count = time2 - time1;  // calculate how many milliseconds it has been
+      ESP.wdtFeed();  // Stop WDT setting off
     }
   }
 }
